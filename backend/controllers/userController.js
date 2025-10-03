@@ -16,8 +16,7 @@ const registerSchema = z.object({
  export const registerUser = async (req,res) =>{
     const validation = registerSchema.safeParse(req.body);
     if(!validation.success){
-        console.log(validation.error.message);
-        return res.status(400).json({mess : validation.error.message});
+        return res.status(400).json({message: validation.error.issues[0].message});
     }
 
     const {userName, userEmail, userPassword} = req.body;
@@ -42,7 +41,7 @@ export const loginUser = async (req, res) => {
 
         const emailCheck = await User.findOne({userEmail});
         if (!emailCheck) {
-            return res.json({message: "user not registered"});
+            return res.status(400).json({message: "user not registered, please create an account"});
         }
         const isMatch = await bcrypt.compare(userPassword, emailCheck.userPassword);
         if (!isMatch) {
