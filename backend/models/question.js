@@ -16,11 +16,12 @@ const questionSchema  = new mongoose.Schema({
         }
 
     }],
-    quizId : {
-        type: String,
+    quiz : {
+        type : mongoose.Schema.Types.ObjectId,
+        ref : "Quiz",
         required : true,
     }
-})
+}, {timestamps: true});
 
 
 const Question = mongoose.model("Question", questionSchema);

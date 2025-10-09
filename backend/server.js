@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(cors());
 app.use('/api/users', userRouter);
-app.use('/api/admin', quizRoutes);
+app.use('/api/quiz', quizRoutes);
 
 app.listen(PORT, ()=>{
     console.log("Server started at ", PORT);

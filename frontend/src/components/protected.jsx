@@ -35,7 +35,7 @@ function Protected({children}){
             <div className="min-h-screen min-w-screen bg-black font-instrument text-white justify-center items-center flex text-xl">Loading..</div>
         )
     }
-    return isAuthenticated? children : <Navigate to="/" replace/>
+    return isAuthenticated? children : <Navigate to="/error" replace/>
 };
 
 

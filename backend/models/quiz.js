@@ -5,15 +5,14 @@ const quizSchema = new mongoose.Schema({
         type : String,
         required : true,
     },
-    quizId : {
-        type : String,
-        required : true,
-        unique : true,
-    },
     questionsList : [{
         type : mongoose.Schema.Types.ObjectId,
         ref : "Question"
-}]
+    }],
+    assignedUser : [{
+        type : mongoose.Schema.Types.ObjectId,
+        ref : "User"
+    }]
 
 });
 

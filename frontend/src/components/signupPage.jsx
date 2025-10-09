@@ -1,14 +1,18 @@
-import axios from "axios";
-import { useState } from "react";
-import { z } from "zod";
+import landingPageImage from '../assets/landingPage-bg.jpg';
+import logo from '../assets/logo.png';
+import axios from 'axios';
+import { useState } from 'react';
+import { z } from 'zod';
+import { useNavigate } from 'react-router-dom';
 
 const registerSchema = z.object({
-    userName: z.string().nonempty("Invalid Name"),
-    userEmail: z.email("Invalid Email"),
-    userPassword: z.string().min(8, "Password must be atleast 8 characters long"),
+    userName: z.string().nonempty('Invalid Name'),
+    userEmail: z.string().email('Invalid Email'),
+    userPassword: z.string().min(8, 'Password must be atleast 8 characters long'),
 });
 
-function SignUp(props) {
+function SignUp() {
+    const navigate = useNavigate();
     const [userName, setUserName] = useState('');
     const [userPassword, setPassword] = useState('');
     const [userPassword2, setPassword2] = useState('');
@@ -16,100 +20,180 @@ function SignUp(props) {
     const [showPassword, setShowPassword] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
     const [preError, setPreError] = useState(false);
+    const [isVisible, setIsVisible] = useState(true);
     const isFormValid = userName && userEmail && userPassword && userPassword2;
 
     const handleRegistration = async (userName, userEmail, userPassword) => {
         try {
             const validation = registerSchema.safeParse({
-                userName: userName,
-                userEmail: userEmail,
-                userPassword: userPassword
-            })
+                userName,
+                userEmail,
+                userPassword,
+            });
             if (!validation.success) {
                 const message = validation.error.issues[0].message;
                 setErrorMessage(message);
                 return;
             }
-            const response = await axios.post('http://localhost:3000/api/users/register', {
-                userName,
-                userEmail,
-                userPassword,
-            })
-            localStorage.setItem("token", response.data.token);
-            setErrorMessage("");
+            const response = await axios.post(
+                'http://localhost:3000/api/users/register',
+                { userName, userEmail, userPassword }
+            );
+            localStorage.setItem('token', response.data.token);
+            setErrorMessage('');
+            navigate('/dashboard');
+        } catch (error) {
+            setErrorMessage(error.response?.data?.message || 'Internal Server Error');
         }
-        catch (error) {
-            setErrorMessage(error.response?.data?.message || "Internal Server Error")
-        };
     };
 
     return (
-        <div className='pl-10 pt-10 pr-10 pb-10 gap-2 flex flex-col'>
-            {preError && <p className="text-red-600 text-sm">Error in One or More fields</p>}
-            <h1 className='text-3xl font-medium'>Welcome to Quizzy</h1>
-            <h1 className='text-md text-gray-700 '>Name</h1>
-            <input type="text" value={userName} onChange={
-                (e) => (
-                    setUserName(e.target.value),
-                    setErrorMessage(''),
-                    setPreError(false)
-                )} className='border rounded-sm px-3 py-0.25' />
-            <h1 className='text-md text-gray-700 '>Email Address</h1>
-            <input type="text" value={userEmail} onChange={(e) => (
-                setEmail(e.target.value),
-                setErrorMessage(''),
-                setPreError(false)
-            )} className='border rounded-sm px-3 py-0.25' />
-            <h1 className='text-md text-gray-700 '>Password</h1>
-            <div className='relative'>
-                <input
-                    type={showPassword ? "text" : "password"}
-                    value={userPassword}
-                    onChange={(e) => {
-                        setPassword(e.target.value);
-                        setErrorMessage('');
-                        setPreError(false);
-                    }}
-                    className='border rounded-sm px-3 py-0.25 w-full pr-10'
-                />
-                {userPassword && (
-                    <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-sm'
-                    >
-                        {showPassword ? "Hide" : "Show"}
-                    </button>
+        <div className='relative flex flex-col w-screen h-screen font-instrument'>
+            <img
+                src={landingPageImage}
+                alt='Image BG'
+                className='absolute w-screen h-screen object-cover -z-1'
+            />
+            <nav className='relative z-10 bg-white/10 backdrop-blur-sm border-b border-white/20 px-8 py-4'>
+                <div className='flex items-center justify-between'>
+                    <div className='flex items-center gap-1'>
+                        <img src={logo} alt='' className='h-8' />
+                        <h1 className='text-2xl font-semibold text-gray-800'>Quizzy</h1>
+                    </div>
+                    <div className='flex gap-4'>
+                        <button
+                            className='text-gray-700 hover:text-gray-900'
+                            onClick={() => navigate('/about')}
+                        >
+                            About
+                        </button>
+                        <button
+                            className='text-gray-700 hover:text-gray-900'
+                            onClick={() => navigate('/contact')}
+                        >
+                            Contact
+                        </button>
+                    </div>
+                </div>
+            </nav>
+            <div className='relative flex items-center justify-center flex-1'>
+                {isVisible && (
+                    <div className='bg-white/ backdrop-blur-md border rounded-lg flex flex-col justify-center w-sm shadow-2xl'>
+                        <div className='flex items-center justify-between pl-4 pr-4 border-b-1 p-1.5'>
+                            <h1 className='font-medium text-gray-600'>Log in or sign up</h1>
+                            <button
+                                onClick={() => setIsVisible(false)}
+                                className='text-gray-600 hover:text-gray-800 text-xl font-bold'
+                            >
+                                ×
+                            </button>
+                        </div>
+                        <div className='pl-10 pt-10 pr-10 pb-10 gap-2 flex flex-col'>
+                            {preError && (
+                                <p className='text-red-600 text-sm'>
+                                    Error in One or More fields
+                                </p>
+                            )}
+                            <h1 className='text-3xl font-medium'>Welcome to Quizzy</h1>
+                            <h1 className='text-md text-gray-700'>Name</h1>
+                            <input
+                                type='text'
+                                value={userName}
+                                onChange={(e) => {
+                                    setUserName(e.target.value);
+                                    setErrorMessage('');
+                                    setPreError(false);
+                                }}
+                                className='border rounded-sm px-3 py-0.25'
+                            />
+                            <h1 className='text-md text-gray-700'>Email Address</h1>
+                            <input
+                                type='text'
+                                value={userEmail}
+                                onChange={(e) => {
+                                    setEmail(e.target.value);
+                                    setErrorMessage('');
+                                    setPreError(false);
+                                }}
+                                className='border rounded-sm px-3 py-0.25'
+                            />
+                            <h1 className='text-md text-gray-700'>Password</h1>
+                            <div className='relative'>
+                                <input
+                                    type={showPassword ? 'text' : 'password'}
+                                    value={userPassword}
+                                    onChange={(e) => {
+                                        setPassword(e.target.value);
+                                        setErrorMessage('');
+                                        setPreError(false);
+                                    }}
+                                    className='border rounded-sm px-3 py-0.25 w-full pr-10'
+                                />
+                                {userPassword && (
+                                    <button
+                                        type='button'
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 text-sm'
+                                    >
+                                        {showPassword ? 'Hide' : 'Show'}
+                                    </button>
+                                )}
+                            </div>
+                            <h1 className='text-md text-gray-700'>Confirm Password</h1>
+                            <div className='relative'>
+                                <input
+                                    type='password'
+                                    value={userPassword2}
+                                    onChange={(e) => {
+                                        setPassword2(e.target.value);
+                                        setErrorMessage('');
+                                        setPreError(false);
+                                    }}
+                                    className='border rounded-sm px-3 py-0.25 w-full pr-10'
+                                />
+                            </div>
+                            {errorMessage.length > 0 && (
+                                <p className='text-red-500 text-sm'>{errorMessage}</p>
+                            )}
+                            {userPassword2.length > 0 &&
+                                userPassword !== userPassword2 && (
+                                    <p className='text-red-500 text-sm'>
+                                        Passwords didn't match
+                                    </p>
+                                )}
+                            <div className='flex justify-between mt-3 items-end'>
+                                <button
+                                    disabled={!isFormValid}
+                                    className='bg-blue-700 hover:bg-black hover:text-white text-white font-medium py-2 px-4 rounded border-1 hover:cursor-pointer'
+                                    onClick={() => {
+                                        userPassword === userPassword2 &&
+                                        userPassword2.length > 0
+                                            ? handleRegistration(userName, userEmail, userPassword)
+                                            : setPreError(true);
+                                    }}
+                                >
+                                    Create Account
+                                </button>
+                                <h1
+                                    className='text-gray-500 text-sm text-right hover:underline hover:cursor-pointer'
+                                    onClick={() => {
+                                        navigate('/');
+                                    }}
+                                >
+                                    take me to login page
+                                </h1>
+                            </div>
+                        </div>
+                    </div>
                 )}
             </div>
-            <h1 className='text-md text-gray-700 '>Confirm Password</h1>
-            <div className='relative'>
-                <input
-                    type="password"
-                    value={userPassword2}
-                    onChange={(e) => {
-                        setPassword2(e.target.value);
-                        setErrorMessage('');
-                        setPreError(false);
-                    }}
-                    className='border rounded-sm px-3 py-0.25 w-full pr-10'
-                />
-            </div>
-            {errorMessage.length > 0 && <p className='text-red-500 text-sm'>{errorMessage}</p>}
-            {(userPassword2.length > 0 && userPassword != userPassword2) && <p className='text-red-500 text-sm'>Passwords didn't match</p>}
-            <div className='flex justify-between mt-3 items-end'>
-                <button
-                    disabled={!isFormValid}
-                    className='bg-blue-700 hover:bg-black hover:text-white text-white font-medium py-2 px-4 rounded border-1 hover:cursor-pointer '
-                    onClick={() => {
-                        userPassword == userPassword2 && userPassword2.length > 0 ? handleRegistration(userName, userEmail, userPassword) : setPreError(true);
-                    }}>
-                    Create Account
-                </button>
-                <h1 className="text-gray-500 text-sm text-right hover:underline hover:cursor-pointer" onClick={props.goToLogin}>take me to login page</h1>
-            </div>
+            <footer className='relative z-10 bg-white/10 backdrop-blur-sm border-t border-white/20 px-8 py-4'>
+                <div className='text-center text-gray-700 text-sm'>
+                    <p>a personal project</p>
+                </div>
+            </footer>
         </div>
-    )
+    );
 }
 
 export default SignUp;
