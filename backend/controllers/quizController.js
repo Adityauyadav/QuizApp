@@ -1,5 +1,6 @@
 import Quiz from '../models/quiz.js';
 import Question from '../models/question.js';
+import User from '../models/user.js';
 
 export const createQuiz = async (req, res) => {
   try {
@@ -19,32 +20,44 @@ export const createQuiz = async (req, res) => {
   }
 };
 
-export const addQuestion = async(req,res)=>{
-    try {
-        const {question, options} = req.body;
-        const {quizId} = req.params;
-    if (!question || !options || options.length !== 4) {
-      return res.status(400).json({ message: "Invalid input" });
-    };
-    const correctCount = options.filter(opt => opt.isCorrect === true).length;
-    if(correctCount!=1){
-        return res.status(400).json({message:"Only 1 options should be correct"});
+export const addQuestion = async (req, res) => {
+  try {
+    const { quizId } = req.params;
+    const { questions } = req.body;
+
+    if (!Array.isArray(questions) || questions.length === 0) {
+      return res.status(400).json({ message: "No questions provided" });
     }
 
-    const newQuestion = new Question({question, options, quizId});
-    await newQuestion.save();
+    const createdQuestions = [];
 
-    const quiz = await Quiz.findOne({quizId});
-    quiz.questionsList.push(newQuestion._id);
+    for (const q of questions) {
+      const { question, options } = q;
+
+      if (!question || !options || options.length !== 4) {
+        return res.status(400).json({ message: "Invalid question input" });
+      }
+
+      const correctCount = options.filter(opt => opt.isCorrect === true).length;
+      if (correctCount !== 1) {
+        return res.status(400).json({ message: "Each question must have exactly 1 correct option" });
+      }
+
+      const newQuestion = new Question({ question, options, quiz:quizId });
+      await newQuestion.save();
+      createdQuestions.push(newQuestion._id);
+    }
+
+    const quiz = await Quiz.findById(quizId);
+    quiz.questionsList.push(...createdQuestions);
     await quiz.save();
 
-    res.status(201).json({message:"question added succesfully"});    
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({message:"Internal Server Error"});
-    }
+    res.status(201).json({ message: `${createdQuestions.length} questions added successfully` });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
 };
-
 
 export const getQuiz = async(req,res) =>{
     try {
@@ -67,4 +80,115 @@ export const getQuizbyId = async (req,res) =>{
   } catch (error) {
     res.status(500).json({message:"Internal Server Error"});
   }
-}
+};
+
+export const assignQuiz = async(req,res) => {
+  try{
+    const {quizId} = req.params;
+    const userId = req.body.userId;
+    const userCheck = await User.findById(userId);
+    if(!userCheck){
+      return res.status(500).json({message:"user is not registered"});
+    }
+    await Quiz.findOneAndUpdate(
+      { _id: quizId },
+      { $addToSet: { assignedUser: userId } }
+    );
+
+    res.status(201).json({message : "user assigned succesfully"});
+  }
+  catch(error){
+    console.error(error);
+    res.status(500).json({message:"Internal Server Error"});
+  }
+};
+
+export const deassignQuiz = async(req,res) => {
+  try{
+    const {quizId} = req.params;
+    const userId = req.body.userId;
+    const userCheck = await User.findById(userId);
+    if(!userCheck){
+      return res.status(500).json({message:"user is not registered"});
+    }
+    await Quiz.findOneAndUpdate(
+      { _id: quizId },
+      { $pull: { assignedUser: userId } }
+    );
+
+    res.status(200).json({message : "user deassigned successfully"});
+  }
+  catch(error){
+    console.error(error);
+    res.status(500).json({message:"Internal Server Error"});
+  }
+};
+
+export const deleteQuiz = async (req, res) => {
+  try {
+    const { quizId } = req.params;
+
+    const quiz = await Quiz.findById(quizId);
+    if (!quiz) {
+      return res.status(404).json({ message: "Quiz not found" });
+    }
+
+    await Question.deleteMany({ quizId });
+    await Quiz.findByIdAndDelete(quizId);
+
+    return res.status(200).json({ message: "Quiz deleted successfully" });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+
+export const submitQuiz = async (req, res) => {
+  try {
+    const { quizId, userId } = req.params; 
+    const { answers } = req.body;
+
+    if (!answers || !Array.isArray(answers)) {
+      return res.status(400).json({ message: 'Invalid answers array' });
+    }
+
+    const questions = await Question.find({ quiz: quizId });
+
+    let score = 0;
+    const answerDocs = [];
+
+    for (let userAnswer of answers) {
+      const question = questions.find(q => q._id.toString() === userAnswer.questionId);
+      if (!question) continue;
+
+      const isCorrect = question.options.some(
+        opt => opt.text === userAnswer.selectedOption && opt.isCorrect
+      );
+      if (isCorrect) score++;
+
+      answerDocs.push({
+        quizId,
+        userId,
+        questionId: question._id,
+        selectedOption: userAnswer.selectedOption,
+        isCorrect
+      });
+    }
+
+
+    await Answer.insertMany(answerDocs);
+
+
+    await Leaderboard.findOneAndUpdate(
+      { quizId, userId },
+      { quizId, userId, score },
+      { upsert: true, new: true }
+    );
+
+    res.status(200).json({ message: 'Quiz submitted', score });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
