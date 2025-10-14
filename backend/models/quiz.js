@@ -12,7 +12,12 @@ const quizSchema = new mongoose.Schema({
     assignedUser : [{
         type : mongoose.Schema.Types.ObjectId,
         ref : "User"
-    }]
+    }],
+    attemptedUser : [{
+        type : mongoose.Schema.Types.ObjectId,
+        ref : "User"
+    }],
+
 
 });
 

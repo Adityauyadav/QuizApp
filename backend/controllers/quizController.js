@@ -1,6 +1,7 @@
 import Quiz from '../models/quiz.js';
 import Question from '../models/question.js';
 import User from '../models/user.js';
+import Leaderboard from '../models/leaderboard.js';
 
 export const createQuiz = async (req, res) => {
   try {
@@ -143,52 +144,48 @@ export const deleteQuiz = async (req, res) => {
   }
 };
 
-
 export const submitQuiz = async (req, res) => {
   try {
-    const { quizId, userId } = req.params; 
+    const { quizId, userId } = req.params;
     const { answers } = req.body;
 
     if (!answers || !Array.isArray(answers)) {
-      return res.status(400).json({ message: 'Invalid answers array' });
+      return res.status(400).json({ message: "Invalid answers array" });
     }
 
     const questions = await Question.find({ quiz: quizId });
 
     let score = 0;
-    const answerDocs = [];
+    const total = questions.length;
 
-    for (let userAnswer of answers) {
-      const question = questions.find(q => q._id.toString() === userAnswer.questionId);
+    for (const { questionId, selectedOptionId } of answers) {
+      const question = questions.find(q => q._id.toString() === questionId);
       if (!question) continue;
 
-      const isCorrect = question.options.some(
-        opt => opt.text === userAnswer.selectedOption && opt.isCorrect
-      );
-      if (isCorrect) score++;
-
-      answerDocs.push({
-        quizId,
-        userId,
-        questionId: question._id,
-        selectedOption: userAnswer.selectedOption,
-        isCorrect
-      });
+      const correctOption = question.options.find(opt => opt.isCorrect);
+      if (correctOption && correctOption._id.toString() === selectedOptionId) {
+        score++;
+      }
     }
-
-
-    await Answer.insertMany(answerDocs);
-
-
+    const quiz = await Quiz.findById(quizId);
+     if (!quiz.assignedUser.includes(userId)) {
+      return res.status(400).json({ message: "User not assigned this quiz" });
+    }
+    if (quiz.attemptedUser.includes(userId)) {
+      return res.status(400).json({ message: "Quiz already attempted" });
+    }
+    quiz.attemptedUser.push(userId);
+    await quiz.save();
+    
     await Leaderboard.findOneAndUpdate(
-      { quizId, userId },
-      { quizId, userId, score },
+      { user: userId, quizName: quizId },
+      { score },
       { upsert: true, new: true }
     );
 
-    res.status(200).json({ message: 'Quiz submitted', score });
+    res.status(200).json({ message: "Quiz submitted", score, total });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Internal Server Error' });
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };

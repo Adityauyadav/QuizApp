@@ -1,5 +1,5 @@
 import adminCheck from "../middleware/adminAuth.js";
-import { createQuiz, addQuestion, getQuiz, getQuizbyId, assignQuiz, deleteQuiz } from "../controllers/quizController.js";
+import { createQuiz, addQuestion, getQuiz, getQuizbyId, assignQuiz, deleteQuiz, submitQuiz } from "../controllers/quizController.js";
 import express from "express";
 import protect from "../middleware/authMiddleware.js";
 
@@ -13,5 +13,6 @@ router.get('/:quizId', adminCheck, getQuizbyId );
 router.post('/:quizId/assign', adminCheck, assignQuiz);
 router.post('/:quizId/deassign', adminCheck, assignQuiz);
 router.delete('/:quizId/delete', adminCheck, deleteQuiz);
+router.post('/submit/:quizId/:userId', protect, submitQuiz);
 
 export default router;
